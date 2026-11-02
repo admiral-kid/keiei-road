@@ -8,11 +8,16 @@
 <meta name="theme-color" content="#0a0d18">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="経営ロード">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<script>
+// ホーム画面から開いたときは、時計の帯の下までページを広げ、帯の高さ(ホーム画面のアプリは教えてくれる)の分だけ盤を下げる。
+// ブラウザでは帯の高さが分からないことがあるので、広げずにブラウザに帯の下へ置いてもらう
+if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Rubik:wght@700;800&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
@@ -469,7 +474,8 @@ button.bigcard:disabled { opacity: .5; cursor: default; }
 .bigcard.wrong { outline: 2px solid var(--red); }
 </style>
 <style>
-/* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない(viewport-fit=cover を付けず、ブラウザに帯の下へ置いてもらう)。帯の高さを教えるブラウザでは念のため余白もとる */
+/* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない。帯の高さが分かるときは、その分だけ上に紺の余白をとる */
+html { background: #0a0d18; }
 #app { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); }
 .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 </style>
