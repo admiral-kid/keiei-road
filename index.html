@@ -14,9 +14,16 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <script>
-// ホーム画面から開いたときは、時計の帯の下までページを広げ、帯の高さ(ホーム画面のアプリは教えてくれる)の分だけ盤を下げる。
+// ホーム画面から開いたときは、時計の帯の下までページを広げ、帯の高さの分だけ盤を下げる。
+// 追加し直したアプリでは、全画面なのに standalone を名乗らないことや、帯の高さを0と返すことがある。
+// そこで画面いっぱいに開いているかでも見分け、app の印を付けて、縦向きなら帯の高さを少なくとも62px見込む。
 // ブラウザでは帯の高さが分からないことがあるので、広げずにブラウザに帯の下へ置いてもらう
-if (navigator.standalone || matchMedia('(display-mode: standalone)').matches) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
+(function () {
+  var full = navigator.standalone || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || (screen.height - window.innerHeight < 2 && Math.min(screen.width, screen.height) < 600);
+  if (!full) return;
+  document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
+  document.documentElement.classList.add('app');
+})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -506,6 +513,11 @@ b.gold { color: var(--gold); font-family: var(--num); }
 /* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない。帯の高さが分かるときは、その分だけ上に紺の余白をとる */
 html { background: #0a0d18; }
 #app { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); }
+@media (orientation: portrait) and (max-width: 600px) {
+  .app #app { --bar: max(env(safe-area-inset-top, 0px), 62px); padding-top: var(--bar); }
+  .app .sheet { max-height: calc(100% - 64px - var(--bar)); }
+  .app .peek { padding-top: calc(8px + var(--bar)); }
+}
 .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 </style>
 </head>
