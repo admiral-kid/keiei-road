@@ -478,6 +478,29 @@ button.bigcard:disabled { opacity: .5; cursor: default; }
 .haunt.big { outline: 1.5px solid #fff; outline-offset: -1px; }
 .haunt-head.spy { color: #4fd1a8; }
 .haunt-head.waster { color: #e3b341; }
+
+/* 大型案件。下の札は押すと中身が見られる。達成したら緑 */
+.pill.job { padding: 0 6px; border: 1.5px solid var(--gold); background: rgba(255, 200, 61, .1); color: var(--gold); font-family: var(--body); font-size: 12px; font-weight: 900; cursor: pointer; }
+.pill.job b { color: var(--ink); font-size: 12.5px; }
+.pill.job.done { border-color: var(--good); color: var(--good); background: rgba(79, 224, 168, .12); }
+.goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.goals li { display: flex; align-items: center; gap: 8px; background: var(--panel2); padding: 7px 10px; font-size: 14px; font-weight: 700; border-left: 3px solid var(--gold); }
+.goals li b { margin-left: auto; flex: none; font-family: var(--num); font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.goals li.done { border-left-color: var(--good); }
+.goals li.done b { color: var(--good); }
+.goals li.or { background: none; border: 0; padding: 0; justify-content: center; font-size: 12px; color: var(--dim); }
+b.gold { color: var(--gold); font-family: var(--num); }
+.windtag.job { background: var(--gold); }
+/* お金でとりつき役を追い払うボタンは、カードと投資の下に横いっぱい */
+.acts button.wide { grid-column: 1 / -1; border-color: #ff6b84; background: rgba(198, 47, 74, .16); }
+.acts button.wide svg { color: #ff6b84; }
+.acts button.wide em { background: #ff6b84; color: #fff; }
+.grew { font-style: normal; font-size: 11px; font-weight: 900; color: #fff; background: #c62f4a; padding: 0 5px; margin-right: 6px; }
+/* 開発の前の見通し */
+.outlook { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.outlook li { display: grid; gap: 1px; background: var(--panel2); padding: 5px 9px; }
+.outlook span { font-size: 11.5px; color: var(--dim); font-weight: 700; }
+.outlook b { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 </style>
 <style>
 /* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない。帯の高さが分かるときは、その分だけ上に紺の余白をとる */
@@ -515,7 +538,7 @@ html { background: #0a0d18; }
 <script>
 // 経営ロードのルール本体。画面を持たない。
 // 盤は経営の流れを一周する輪。8ターン(季節ごとに2ターン)で1年が進み、5年後の資産で順位が決まる
-const CFG = { PLAN_UP: .25, PR_CUT: .5, YEARS: 5, PER_YEAR: 8, SEASONS: 4, HAND: 4, SHELF: 3, SYN: .25, SEED: 30, START: 3, OPEN_RATE: [.05, .24], TAIL: 1.15, MATCH: 2, LAP: .09, AID: 20, AID_RATE: .06, GROW: 6, WAGE: 8, LOAN: 10, RATE: .06, REPAY: 4, UPKEEP: .2, TILE_OFF: .8, POWER_MAX: 16, POWER_UP: .1, DEV_UP: .02, BRIDGE: 1.2, GRANT: 5, EQUITY: 10, DIVIDEND: .15, WARN: 3, ALARM: [5, 13, 21, 29, 37] };
+const CFG = { PLAN_UP: .25, PR_CUT: .5, YEARS: 5, PER_YEAR: 8, SEASONS: 4, HAND: 4, SHELF: 3, SYN: .25, SEED: 30, START: 3, OPEN_RATE: [.05, .24], TAIL: 1.15, MATCH: 2, LAP: .09, AID: 20, AID_RATE: .06, GROW: 6, HOLD: 2, CUT: [6, 15], DOUBLE: 12, PROJECT: 12, WAGE: 8, LOAN: 10, RATE: .06, REPAY: 4, UPKEEP: .2, TILE_OFF: .8, POWER_MAX: 16, POWER_UP: .1, DEV_UP: .02, BRIDGE: 1.2, GRANT: 5, EQUITY: 10, DIVIDEND: .15, WARN: 3, ALARM: [5, 13, 21, 29, 37] };
 const TURNS = CFG.YEARS * CFG.PER_YEAR;
 const SEASONS = ['春', '夏', '秋', '冬'];
 // 年ごとの金額の大きさ。後半ほど大きいので、前半の差を取り返せる
@@ -586,9 +609,9 @@ const CARDS = {
   rush2: { name:'特急で進める', act:'dice', n:2, fx:'今回はサイコロ2個', term:'リードタイム', subject:'運営管理', def:'発注から納入までにかかる時間。' },
   rush3: { name:'全社一丸', act:'dice', n:3, fx:'今回はサイコロ3個', term:'多台持ち', subject:'運営管理', def:'1つの工程で、1人が複数台の機械を担当する作業方法。' },
   aim: { name:'ねらい撃ち', act:'aim', fx:'今回の目を1〜6から選べる', term:'ターゲティング', subject:'企業経営理論', def:'分けた市場の中から狙う市場を選ぶこと。' },
-  ad: { name:'大キャンペーン', act:'mood', k:1.5, fx:'次の決算まで、1マスの売上が1.5倍', term:'販売促進', subject:'企業経営理論', def:'広告・人的販売・パブリシティ以外で、購買を直接うながす活動。' },
+  ad: { name:'大キャンペーン', act:'mood', k:1.5, fx:'次の決算まで、1マスの売上が1.5倍。売上アップどうしは重ならない', term:'販売促進', subject:'企業経営理論', def:'広告・人的販売・パブリシティ以外で、購買を直接うながす活動。' },
   deal: { name:'大口契約', act:'deal', n:6, fx:'今すぐ、1マスの売上の6倍', term:'受注生産', subject:'運営管理', def:'顧客の注文を受けてから生産する形態。' },
-  twice: { name:'ボーナス決算', act:'double', fx:'次の決算の利益が2倍', term:'利益計画', subject:'財務・会計', def:'目標の利益を決め、それを達成するための売上や費用を計画すること。' },
+  twice: { name:'ボーナス決算', act:'double', fx:p => `次の決算の利益が2倍(上乗せは ${yen(avgOf(lastGame, p, CFG.DOUBLE))} まで。平均資産の${CFG.DOUBLE}%)`, term:'利益計画', subject:'財務・会計', def:'目標の利益を決め、それを達成するための売上や費用を計画すること。' },
   half: { name:'共同開発', act:'cheap', fx:'次の商品開発が半額', term:'オープンイノベーション', subject:'企業経営理論', def:'社外の技術やアイデアを取り入れて、新しい製品やサービスを生み出すこと。' },
   renew: { name:'リニューアル', act:'renew', fx:'いちばん古い商品が売れ筋に戻る', term:'製品ライフサイクル', subject:'企業経営理論', def:'製品の売上が、導入期・成長期・成熟期・衰退期と変わっていくという考え方。' },
   grant: { name:'補助金の当選', act:'grant', n:6, fx:p => `今すぐ +${yen(avgOf(lastGame, p, 6))}(平均資産の6%)`, term:'補助金', subject:'中小企業政策', def:'国や自治体が事業者に給付する、返済不要の資金。' },
@@ -600,7 +623,7 @@ const CARDS = {
   sue: { name:'権利で訴える', act:'hit', hit:'sue', fx:'他社1社のいちばん売れている商品を、次の決算まで止める', term:'差止請求', subject:'経営法務', def:'権利を侵害する行為をやめるよう求めること。特許権や商標権の持ち主ができる。' },
   down: { name:'幹部の引き抜き', act:'hit', hit:'down', fx:'他社1社の宣伝・人材・研究開発のうち、いちばん高い段を1つ下げる', term:'コア・コンピタンス', subject:'企業経営理論', def:'顧客に価値をもたらし、他社がまねしにくい、企業の中核となる能力。' },
   site: { name:'先回りの出店', act:'hit', hit:'site', fx:'他社1社の設備を1段下げる。棚からあふれた商品は手放させる', term:'ドミナント戦略', subject:'運営管理', def:'特定の地域に集中して出店し、その地域での競争を有利にする戦略。' },
-  push: { name:'厄介払い', act:'push', fx:'自分についているとりつき役を、ほかの会社1社に移す', term:'リスクの移転', subject:'企業経営理論', def:'保険や契約などで、損失のおそれをほかに移すこと。リスクへの対応は回避・低減・移転・保有の4つ。' },
+  push: { name:'厄介払い', act:'push', fx:'自分についているとりつき役を1体(大物から)、ほかの会社1社に移す。1社につくのは2体まで', term:'リスクの移転', subject:'企業経営理論', def:'保険や契約などで、損失のおそれをほかに移すこと。リスクへの対応は回避・低減・移転・保有の4つ。' },
   ward: { name:'内部統制を整える', act:'ward', fx:'次にとりつかれるのを1回はね返す', term:'内部統制', subject:'経営法務', def:'不正やミスを防ぎ、業務を正しく進めるための社内の仕組み。' },
   expel: { name:'社外取締役を入れる', act:'expel', fx:'自分についているとりつき役を、大物も含めてすべて追い払う', term:'コーポレート・ガバナンス', subject:'企業経営理論', def:'経営者を監視し、会社を健全に運営させるための仕組み。' },
   guard: { name:'守りを固める', act:'guard', fx:'次に受ける妨害を1回はね返す', term:'参入障壁', subject:'企業経営理論', def:'新しい競争相手が入りにくくなる要因。' },
@@ -613,6 +636,39 @@ const CLIMATE = {
   flat: { name:'ふつうの景気', k:1, lane:'new' },
   bad: { name:'不景気', k:.9, lane:'safe' },
 };
+
+// 大型案件。毎年1つ出て、決算までに2つの条件のどちらかを満たした会社に平均資産の PROJECT% が入る
+// 条件はその年の自分の動きで決まるので、どの順位からでも狙える。yr は年のはじめの控えと、その年に数えたもの
+const levelSum = p => Object.values(p.level).reduce((a, b) => a + b, 0);
+const topGenre = p => Math.max(0, ...Object.keys(GENRES[p.trade]).map(k => p.goods.filter(x => x.genre === k).length));
+// 何もしなくても満たせる条件は入れない。その年に狙って動いたときだけ届く数にする
+const GOALS = {
+  syn4: { text:'同じ分野の商品を4つ並べる', need:4, now:p => topGenre(p) },
+  dev2: { text:'新商品を今年2つ開発する', need:2, now:p => p.yr.devs },
+  power6: { text:'営業力を今年 +6', need:6, now:p => p.power - p.yr.power },
+  risk4: { text:'攻める道を今年4回選ぶ', need:4, now:p => p.yr.risk, lane:'risk' },
+  safe4: { text:'手堅い道を今年4回選ぶ', need:4, now:p => p.yr.safe, lane:'safe' },
+  new4: { text:'試す道を今年4回選ぶ', need:4, now:p => p.yr.new, lane:'new' },
+  up3: { text:'投資を今年3段上げる', need:3, now:p => levelSum(p) - p.yr.level },
+  site2: { text:'設備を今年2段上げる', need:2, now:p => p.level.site - p.yr.site },
+  ad2: { text:'宣伝を今年2段上げる', need:2, now:p => p.level.ad - p.yr.ad },
+  train2: { text:'人材を今年2段上げる', need:2, now:p => p.level.train - p.yr.train },
+  lab2: { text:'研究開発を今年2段上げる', need:2, now:p => p.level.lab - p.yr.lab },
+  cards5: { text:'カードを今年5枚使う', need:5, now:p => p.yr.cards },
+};
+const PROJECTS = [
+  { name:'大手チェーンからの引き合い', goals:['syn4', 'power6'], term:'バイイングパワー', subject:'企業経営理論', def:'大規模な小売業などの買い手が、仕入れ先に対して持つ強い交渉力。' },
+  { name:'海外の展示会への出展', goals:['risk4', 'ad2'], term:'ジェトロ', subject:'中小企業政策', def:'日本貿易振興機構。展示会への出展や情報の提供で、中小企業の海外展開を支える。' },
+  { name:'自治体の入札', goals:['site2', 'up3'], term:'官公需法', subject:'中小企業政策', def:'国や自治体が物やサービスを買うとき、中小企業が受注する機会を増やすよう定めた法律。' },
+  { name:'業界誌の取材', goals:['dev2', 'cards5'], term:'パブリシティ', subject:'企業経営理論', def:'報道機関に取り上げてもらう広報。費用はかからないが、伝わる内容は選べない。' },
+  { name:'大学との共同研究', goals:['lab2', 'new4'], term:'産学連携', subject:'企業経営理論', def:'大学などの研究機関と企業が協力して、研究や開発を進めること。' },
+  { name:'地域の大型イベント', goals:['safe4', 'train2'], term:'地域資源', subject:'中小企業政策', def:'地域の特産物や観光資源など、その土地ならではの強み。それを使った事業を国が支える仕組みがある。' },
+];
+const projectNow = g => PROJECTS[g.projects[yearNow(g)]];
+// 条件ごとの今の数と、達成したか
+const goalsOf = (g, p) => projectNow(g).goals.map(id => { const d = GOALS[id], n = Math.max(0, Math.min(d.need, d.now(p, g) || 0)); return { id, text: d.text, now: n, need: d.need, ok: n >= d.need, lane: d.lane }; });
+const projectMet = (g, p) => goalsOf(g, p).some(x => x.ok);
+const markYear = p => { p.yr = { ...p.level, level: levelSum(p), power: p.power, devs: 0, cards: 0, safe: 0, risk: 0, new: 0 }; };
 
 // 盤の並び。経営の流れを企画から回収まで回る
 const ZONES = { plan:'企画', buy:'仕入れ', make:'つくる', sell:'売る', cash:'回収' };
@@ -817,18 +873,28 @@ const PRICE = {
 
 // とりつき役。1位の会社に来て、ほかの会社のいるマスを通ると移る。同じ1社に GROW ターンいると大物に育つ。
 // 大物は決算でも帰らず、効き目も重い。それぞれ追い払えるマスがある。数字は総資産に対する%
+// pay はお金を払って追い払うときの手立て。いつでも1ターンに1体まで
 const HAUNT = {
   pest: { name:'悪徳コンサル', big:'大物の悪徳コンサル', leave:'desk', away:'経営相談のマスに止まる', loss:5, bigLoss:12,
+    pay:{ name:'契約を打ち切る', term:'委任契約', subject:'経営法務', def:'仕事の処理を任せる契約。いつでも解除できるが、相手に不利な時期にやめると損害を賠償することがある。' },
     says:['カタカナの話を3時間聞かされ、相談料を取られた。', 'よく分からない資料を高値で買わされた。', '「補助金が取れます」と言われ、着手金を払った。'] },
   claimer: { name:'クレーマー', big:'モンスタークレーマー', leave:'hq', away:'振り返りを通る', cut:.6, bigCut:.35, fee:1.5, bigFee:4,
+    pay:{ name:'取引をお断りする', term:'リスクの回避', subject:'企業経営理論', def:'損失のもとになる取引や活動そのものをやめて、損失が起きないようにすること。' },
     says:['電話が鳴りやまない。', '店先で大声を出された。', 'ネットに悪い口コミを書かれた。'] },
   spy: { name:'産業スパイ', big:'産業スパイ組織', leave:'card', away:'情報収集のマスに止まる', chance:.5,
+    pay:{ name:'調査会社に頼む', term:'営業秘密', subject:'経営法務', def:'秘密として管理され、事業に役立ち、公に知られていない情報。不正競争防止法で守られる。' },
     says:['設計図を持ち出された。', 'お得意さんの名簿を抜かれた。', '新商品の情報がよその会社に流れた。'] },
   waster: { name:'浪費家の役員', big:'豪遊する役員', leave:'fund', away:'資金調達のマスに止まる', loss:3, bigLoss:8, bigFix:.5,
+    pay:{ name:'役員を解任する', term:'役員の解任', subject:'経営法務', def:'株主総会の決議で、取締役はいつでも辞めさせられる。正当な理由がなければ、損害の賠償を求められることがある。' },
     says:['会社のお金で高級車を買われた。', 'ゴルフの会員権を買われた。', '取引先を毎晩接待された。'] },
 };
 const HAUNT_KEYS = Object.keys(HAUNT);
 const hauntName = (g, key) => (g.haunts[key].big ? HAUNT[key].big : HAUNT[key].name);
+// 1社につくのは HOLD 体まで。いっぱいの会社には来ないし、移ってもこない
+const heldBy = (g, who) => HAUNT_KEYS.filter(k => g.haunts[k].at === who).length;
+const roomOf = (g, who) => heldBy(g, who) < CFG.HOLD;
+// いちばん重い役。大物を先に、同じなら長くついているほう
+const worstHaunt = (g, who) => HAUNT_KEYS.filter(k => g.haunts[k].at === who).sort((a, b) => (g.haunts[b].big - g.haunts[a].big) || (g.haunts[b].age - g.haunts[a].age))[0];
 // 守りがあれば1回はね返す。はね返したら false
 function haunt(g, key, to) {
   const q = g.players[to];
@@ -836,12 +902,20 @@ function haunt(g, key, to) {
   g.haunts[key].at = to;
   return true;
 }
-// 1位の会社に、まだだれにもついていない役を1つ送る
+// まだだれにもついていない役を1つ、上位の会社に送る。1位がいっぱいなら2位へ。place は何位の会社に行ったか
 function sendHaunt(g, r) {
-  const free = HAUNT_KEYS.filter(k => g.haunts[k].at < 0);
-  if (!free.length) return null;
-  const key = free[Math.floor(r() * free.length)], to = whoIs(g, rank(g)[0]);
-  return { key, to, blocked: !haunt(g, key, to) };
+  const free = HAUNT_KEYS.filter(k => g.haunts[k].at < 0), order = rank(g).map(q => whoIs(g, q)), place = order.findIndex(i => roomOf(g, i));
+  if (!free.length || place < 0) return null;
+  const key = free[Math.floor(r() * free.length)], to = order[place];
+  return { key, to, place, blocked: !haunt(g, key, to) };
+}
+// お金を払って1体追い払う。大物ほど高い。1ターンに1回まで
+const cutFee = (g, p, key) => hurtOf(p, g.haunts[key].big ? CFG.CUT[1] : CFG.CUT[0]);
+const canCut = (g, p) => p.cutAt !== g.turn;
+function cutHaunt(g, who, key) {
+  const p = g.players[who], n = cutFee(g, p, key);
+  pay(p, n); freeHaunt(g, key); p.cutAt = g.turn;
+  return n;
 }
 // 自分の番のはじめに、ついている役がそれぞれ悪さをする。長くいると大物に育つ
 function hauntTurn(g, who, r) {
@@ -884,7 +958,7 @@ function shuffle(a, r) {
   return a;
 }
 
-const newPlayer = (name, ai) => ({ name, ai, at: 0, laps: 0, year: 0, power: 1, trade: 'food', form: 'solo', capital: 0, cash: 0, later: 0, sales: 0, fix: 0, fame: 0, mood: 1, wind: false, goods: [], gear: [], burns: [], cutNow: 1, ward: false, loans: [], equity: 0, hand: [], sum: 1, aim: 0, shield: false, guard: false, double: false, cheap: false, taxed: 0, shorted: 0, level: { site: 0, ad: 0, train: 0, lab: 0 } });
+const newPlayer = (name, ai) => ({ name, ai, at: 0, laps: 0, year: 0, power: 1, trade: 'food', form: 'solo', capital: 0, cash: 0, later: 0, sales: 0, fix: 0, fame: 0, mood: 1, lift: 1, wind: false, goods: [], gear: [], burns: [], cutNow: 1, cutAt: -1, ward: false, yr: null, loans: [], equity: 0, hand: [], sum: 1, aim: 0, shield: false, guard: false, double: false, cheap: false, taxed: 0, shorted: 0, level: { site: 0, ad: 0, train: 0, lab: 0 } });
 
 // 山札。場所の決まった札を先に使う
 function decksFor(r) {
@@ -945,7 +1019,8 @@ function redeal(g, r) {
 function newGame(r, names = ['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4']) {
   const storms = shuffle([...WORLD], r).slice(0, CFG.ALARM.length).map((tile, i) => ({ at: CFG.ALARM[i], tile }));
   const keys = Object.keys(CLIMATE), climates = ['flat', ...Array.from({ length: CFG.YEARS - 1 }, () => keys[Math.floor(r() * keys.length)])];
-  return lastGame = { nodes: buildBoard(r), turn: 0, players: names.map((n, i) => newPlayer(n, i > 0)), storms, climates, haunts: Object.fromEntries(HAUNT_KEYS.map(k => [k, { at: -1, big: false, age: 0 }])), history: [] };
+  const projects = shuffle(PROJECTS.map((_, i) => i), r).slice(0, CFG.YEARS);
+  return lastGame = { nodes: buildBoard(r), turn: 0, players: names.map((n, i) => newPlayer(n, i > 0)), storms, climates, projects, haunts: Object.fromEntries(HAUNT_KEYS.map(k => [k, { at: -1, big: false, age: 0 }])), history: [] };
 }
 
 // 開業。自己資金は全社同じ。業種と会社の種類が決まり、最初の商品を持って始まる。いくら借りるかはこのあと選ぶ
@@ -966,10 +1041,10 @@ const isMidYear = g => turnOf(g) === CFG.PER_YEAR / 2;
 // 半年たつと、商品と設備が半年ぶん歳をとる。売れ行きが変わる
 function midYear(g, r = Math.random) { g.players.forEach(p => { p.goods.forEach(x => { x.age += 1; }); p.gear.forEach(x => { x.age += 1; }); }); return sendHaunt(g, r); }
 const climateOf = g => CLIMATE[g.climates[yearNow(g)]];
-// 新しい年が始まる。景気が売上に効く
+// 新しい年が始まる。景気が売上に効く。売上アップは決算で切れる。大型案件の数え直し
 function startYear(g) {
   const y = yearNow(g), k = climateOf(g).k;
-  g.players.forEach(p => { p.year = y; p.mood = k; });
+  g.players.forEach(p => { p.year = y; p.mood = k; p.lift = 1; markYear(p); });
 }
 const scaleOf = p => YEAR[p.year];
 const nodeOf = (g, p) => g.nodes[p.at];
@@ -997,8 +1072,11 @@ const synOf = (list, genre) => 1 + CFG.SYN * Math.max(0, list.filter(x => x.genr
 // 差し止められた商品は、次の決算まで売れない
 const itemPower = (p, item, list = p.goods) => (item.stop ? 0 : item.pw * lifeOf(p, item) * TRADES[p.trade].rate * synOf(list, item.genre) * labOf(p));
 const goodsPower = (p, list = p.goods) => list.reduce((n, x) => n + itemPower(p, x, list), 0);
+// 売上の倍率。mood は景気と、妨害やトラブルで下がった分。lift は売上アップで、重ねずにいちばん大きいものだけ効く
+const moodOf = p => p.mood * p.lift;
+function boost(p, k) { if (k > 1) p.lift = Math.max(p.lift, k); else p.mood *= k; }
 // 1マス進むと入る売上。商品の合計に評判を足し、追い風や景気を掛ける
-const powerOf = p => tenth((goodsPower(p) + p.fame * TRADES[p.trade].rate) * windOf(p) * p.mood);
+const powerOf = p => tenth((goodsPower(p) + p.fame * TRADES[p.trade].rate) * windOf(p) * moodOf(p));
 
 const VALUE = [.8, .8, .6, .4, .2];
 const bookOf = x => x.price * VALUE[Math.min(x.age, VALUE.length - 1)];
@@ -1063,7 +1141,7 @@ function stepTo(g, who, to) {
     const h = g.haunts[key];
     if (h.at !== who) continue;
     if (key === 'claimer' && to === 0) { out.freed.push(hauntName(g, key)); freeHaunt(g, key); continue; }
-    if (other >= 0) out.moved.push({ key, name: hauntName(g, key), to: other, blocked: !haunt(g, key, other) });
+    if (other >= 0 && roomOf(g, other)) out.moved.push({ key, name: hauntName(g, key), to: other, blocked: !haunt(g, key, other) });
   }
   return out;
 }
@@ -1086,8 +1164,9 @@ function passLane(g, who, way, roll) {
 // 分かれ道を選ぶ。どの道も損はしない。景気に合う道なら追い風が吹いてボーナスが入る
 const windLane = g => climateOf(g).lane;
 function chooseLane(g, p, node, lane) {
-  const fork = FORKS[node.fork], ok = fork.lanes[lane].id === windLane(g);
+  const fork = FORKS[node.fork], id = fork.lanes[lane].id, ok = id === windLane(g);
   p.wind = ok;
+  if (p.yr) p.yr[id] += 1;
   if (!ok) return { ok, bonus: 0 };
   const bonus = avgOf(g, p, CFG.MATCH);
   p.cash += bonus;
@@ -1133,6 +1212,7 @@ function buy(p, item, off = 1, drop = -1) {
   if (drop >= 0) { sold = saleOf(p.goods[drop]); p.cash += sold; p.goods.splice(drop, 1); }
   pay(p, priceOf(p, item, off));
   p.cheap = false;
+  if (p.yr) p.yr.devs += 1;
   p.goods.push({ name: item.name, tier: item.tier, price: item.price, pw: item.pw, genre: item.genre, age: 0 });
   return sold;
 }
@@ -1224,7 +1304,7 @@ function applyFx(p, fx, roll = 0, ctx = null) {
   if (fx.later) p.later += fx.later * k;
   if (fx.fame) p.fame = Math.max(0, p.fame + fx.fame * k);
   if (fx.fix) p.fix = Math.max(1, p.fix + fx.fix * k);
-  if (fx.mood) p.mood *= fx.mood;
+  if (fx.mood) boost(p, fx.mood);
   if (fx.dice) p.sum = Math.max(p.sum, fx.dice);
   if (fx.cheap) p.cheap = true;
   if (fx.burn) p.burns.push({ ...fx.burn });
@@ -1252,7 +1332,7 @@ function fxText(p, fx, g = null) {
   if (fx.later) out.push(`決算で +${yen(fx.later * k)}`);
   if (fx.fame) out.push(`売上 ${fx.fame > 0 ? '+' : ''}${perTileText(fx.fame * k)}`);
   if (fx.fix) out.push(`毎年の固定費 ${fx.fix > 0 ? '+' : ''}${yen(fx.fix * k)}`);
-  if (fx.mood) out.push(`次の決算まで売上 ${fx.mood}倍`);
+  if (fx.mood) out.push(`次の決算まで売上 ${fx.mood}倍${fx.mood > 1 && p.lift > 1 ? (p.lift >= fx.mood ? `(今の${+p.lift.toFixed(2)}倍と重ならず、効かない)` : `(今の${+p.lift.toFixed(2)}倍と入れ替わる)`) : ''}`);
   if (fx.dice) out.push(`次はサイコロ${fx.dice}個`);
   if (fx.cheap) out.push('次の商品開発が半額');
   if (fx.power) out.push(`営業力 +${fx.power}`);
@@ -1313,7 +1393,8 @@ function settle(p) {
   const t = TRADES[p.trade], stock = t.stock ? powerOf(p) * t.stock : 0;
   const fix = fixOf(p), interest = interestOf(p), sale = p.sales + stock;
   let profit = sale - fix - interest;
-  const bonus = p.double && profit > 0 ? profit : 0;
+  // ボーナス決算の上乗せは平均資産の DOUBLE% まで。大きい会社ほど得をしすぎないように
+  const bonus = p.double && profit > 0 ? Math.min(profit, lastGame ? avgOf(lastGame, p, CFG.DOUBLE) : profit) : 0;
   profit += bonus;
   const tax = taxOf(p.form, profit), dividend = p.equity * CFG.DIVIDEND;
   const lines = [{ label:'今年の売上', amount: sale, kind:'pl' }, { label:'固定費', amount: -fix, kind:'pl' }];
@@ -1339,10 +1420,13 @@ function settle(p) {
   return { lines, profit: profit - tax, short: p.shorted > before, hint };
 }
 
-// 年末は全社が同時に決算する。最下位の会社には支援金が入り、1位の会社に悪徳コンサルかクレーマーがつく
+// 年末は全社が同時に決算する。大型案件を満たした会社に報酬、最下位の会社には支援金が入り、上位の会社にとりつき役が来る
 function closeYear(g) {
-  const list = g.players.map(settle), order = rank(g), last = order[order.length - 1], k = YEAR[yearNow(g)], y = yearNow(g);
-  const res = { list, aid: 0, low: -1, haunt: null };
+  const met = g.players.map(p => projectMet(g, p)), list = g.players.map(settle);
+  const project = g.players.map((p, i) => (met[i] ? avgOf(g, p, CFG.PROJECT) : 0));
+  project.forEach((n, i) => { if (n) { g.players[i].cash += n; list[i].lines.push({ label:'大型案件の報酬', amount: n, kind:'cash' }); } });
+  const order = rank(g), last = order[order.length - 1], k = YEAR[yearNow(g)], y = yearNow(g);
+  const res = { list, aid: 0, low: -1, haunt: null, project };
   if (worth(last) < worth(order[0])) { res.aid = tenth(Math.max(CFG.AID * k, avgWorth(g) * CFG.AID_RATE)); res.low = whoIs(g, last); last.cash += res.aid; }
   // 大物でない役は決算で帰る。そのあと1位の会社に新しい役が来る
   for (const key of HAUNT_KEYS) if (!g.haunts[key].big) freeHaunt(g, key);
@@ -1352,7 +1436,7 @@ function closeYear(g) {
 }
 
 // 5年後の経営者レベル判定。本の言葉の問題の正解数でレベルが決まり、資産が増減する
-// 早押しで取った問題の数で、経営者レベルが決まる。増減は自分の資産に対する割合
+// 早押しで取った問題の数で、経営者レベルが決まる。ボーナスは全社の平均資産に、赤点は自分の資産に対する割合
 const LEVELS = [
   { min:3, name:'名経営者', rate:.5 },
   { min:2, name:'敏腕経営者', rate:.2 },
@@ -1361,9 +1445,10 @@ const LEVELS = [
 ];
 const QUIZ = 6, QUIZ_SEC = 15;
 const levelOf = score => LEVELS.find(l => score >= l.min);
-// レベルに応じたボーナス。資産がマイナスのときは増減しない。赤点で現金が足りない分は借金になる
-function levelBonus(p, score) {
-  const n = tenth(Math.max(0, worth(p)) * levelOf(score).rate), short = Math.max(0, -n - p.cash);
+// レベルに応じたボーナス。ほかの単発の収入と同じく、増えるほうは平均資産に合わせる。資産がマイナスなら赤点でも減らない。赤点で現金が足りない分は借金になる
+// avg は判定の前の平均資産。先に増えた会社の分で、あとの会社のボーナスが変わらないようにする
+function levelBonus(p, score, avg = avgWorth(lastGame)) {
+  const rate = levelOf(score).rate, n = tenth((rate > 0 ? avg : Math.max(0, worth(p))) * rate), short = Math.max(0, -n - p.cash);
   p.cash = Math.max(0, p.cash + n);
   if (short) p.loans.push({ left: short, per: short });
   return n;
@@ -1385,7 +1470,9 @@ const topOther = (g, who) => g.players.map((q, i) => ({ i, v: worth(q) })).filte
 function blockOf(g, p, id) {
   const who = whoIs(g, p), mine = HAUNT_KEYS.some(k => g.haunts[k].at === who);
   if ((CARDS[id].act === 'push' || CARDS[id].act === 'expel') && !mine) return 'とりつかれていない';
+  if (CARDS[id].act === 'push' && !g.players.some((_, i) => i !== who && roomOf(g, i))) return 'どの会社にももう移せない';
   if (CARDS[id].act === 'ward' && p.ward) return 'もう整えてある';
+  if (CARDS[id].act === 'mood' && p.lift >= CARDS[id].k) return `もう売上${CARDS[id].k}倍になっている`;
   if (CARDS[id].act === 'renew' && !p.goods.some(x => stageOf(p, x) === STAGES[3] || stageOf(p, x) === STAGES[4])) return '売れ筋を過ぎた商品がまだない';
   return '';
 }
@@ -1401,7 +1488,7 @@ function give(p, id, drop = -1) {
 function attack(g, who, to, kind, n) {
   const p = g.players[who], q = g.players[to];
   if (q.guard) { q.guard = false; return { to, kind, blocked: true }; }
-  if (kind === 'cut') { q.mood *= n; return { to, kind, n }; }
+  if (kind === 'cut') { boost(q, n); return { to, kind, n }; }
   if (kind === 'poach') { const k = Math.max(0, Math.min(n, q.power - 1)); q.power -= k; raisePower(p, k); return { to, kind, power: k }; }
   if (kind === 'steal') { const v = tenth(powerOf(q) * n); pay(q, v); p.cash += v; return { to, kind, amount: v }; }
   if (kind === 'sue') {
@@ -1438,10 +1525,11 @@ function lower(q, id) {
 function useCard(g, who, id, opt) {
   const p = g.players[who], c = CARDS[id];
   p.hand.splice(p.hand.indexOf(id), 1);
+  if (p.yr) p.yr.cards += 1;
   switch (c.act) {
     case 'dice': p.sum = Math.max(p.sum, c.n); return {};
     case 'aim': p.aim = opt; return {};
-    case 'mood': p.mood *= c.k; return {};
+    case 'mood': boost(p, c.k); return {};
     case 'deal': return { amount: earn(p, powerOf(p) * c.n) };
     case 'double': p.double = true; return {};
     case 'cheap': p.cheap = true; return {};
@@ -1450,7 +1538,7 @@ function useCard(g, who, id, opt) {
     case 'shield': p.shield = true; return {};
     case 'ally': { const n = powerOf(g.players[topOther(g, who)]) * c.n; p.cash += n; return { amount: n }; }
     case 'hit': return { hit: attack(g, who, opt, c.hit, c.n) };
-    case 'push': return { moved: HAUNT_KEYS.filter(k => g.haunts[k].at === who).map(k => ({ key: k, name: hauntName(g, k), to: opt, blocked: !haunt(g, k, opt) })) };
+    case 'push': { const key = worstHaunt(g, who), name = hauntName(g, key); return { moved: [{ key, name, to: opt, blocked: !haunt(g, key, opt) }] }; }
     case 'ward': p.ward = true; return {};
     case 'expel': return { expelled: HAUNT_KEYS.filter(k => g.haunts[k].at === who).map(k => { const n = hauntName(g, k); freeHaunt(g, k); return n; }) };
     case 'guard': p.guard = true; return {};
@@ -1491,7 +1579,7 @@ function valueOf(p, fx) {
   let v = (fx.now || 0) * k + (fx.later || 0) * k - (fx.loss ? hurtOf(p, fx.loss) : 0);
   v += (fx.fame || 0) * k * years * YEAR_STEPS * .8;
   v -= (fx.fix || 0) * k * years;
-  if (fx.mood) v += (fx.mood - 1) * powerOf(p) * 7;
+  if (fx.mood) v += (fx.mood > 1 ? Math.max(0, fx.mood - p.lift) / p.lift : fx.mood - 1) * powerOf(p) * 7;
   if (fx.card) v += fx.card * 2 * k;
   if (fx.dice) v += k;
   if (fx.cheap) v += 4 * k;
@@ -1517,15 +1605,37 @@ function ahead(g, p, n) {
 function investGain(p, id, offers = []) {
   const x = stepOf(p, id);
   if (!x) return -Infinity;
-  const rate = TRADES[p.trade].rate * p.mood;
+  const rate = TRADES[p.trade].rate * moodOf(p);
   if (id === 'ad') return x.fame * rate * YEAR_STEPS * NET() - x.run;
-  if (id === 'lab') return goodsPower(p) * (x.lab - (labOf(p) - 1)) / labOf(p) * p.mood * YEAR_STEPS * NET() - x.run;
+  if (id === 'lab') return goodsPower(p) * (x.lab - (labOf(p) - 1)) / labOf(p) * moodOf(p) * YEAR_STEPS * NET() - x.run;
   if (id === 'train') return powerOf(p) * CFG.POWER_UP * x.power * CFG.PER_YEAR * 1.2 + (p.power + x.power > CFG.POWER_MAX ? -99 : 0) - x.run;
   // 設備は空いた棚に商品を置けるときだけ得になる。棚がもうすぐ埋まるなら半分の値打ち
   const room = shelfOf(p) - p.goods.length;
   if (room > 1 || !offers.length) return -x.price * CFG.UPKEEP;
   const best = Math.max(...offers.filter(o => o.ok).map(o => gainIf(p, o)), 0);
-  return best * p.mood * YEAR_STEPS * NET() * (room ? .35 : .7) - x.price * CFG.UPKEEP;
+  return best * moodOf(p) * YEAR_STEPS * NET() * (room ? .35 : .7) - x.price * CFG.UPKEEP;
+}
+
+// 元が取れるまでに進むマスの目安。増えた売上から、増える人件費と維持費・毎年の費用を引いた残りで数える。届かなければ 0
+// 商品は売れ行きが半年(YEAR_STEPS の半分)ごとに変わるので、段ごとに足していく。cost は払う額から、やめる商品を手放した額を引いたもの
+function paybackOf(p, item, cost, drop = -1) {
+  const list = p.goods.filter((_, i) => i !== drop), half = YEAR_STEPS / 2, upkeep = item.price * CFG.UPKEEP / YEAR_STEPS;
+  let left = cost, steps = 0;
+  for (let age = 0; age < TRADES[p.trade].life.length; age++) {
+    const net = (goodsPower(p, [...list, { ...item, age }]) - goodsPower(p)) * moodOf(p) * NET() - upkeep;
+    if (net > 0 && left / net <= half) return Math.max(1, Math.ceil(steps + left / net));
+    left -= net * half; steps += half;
+  }
+  return 0;
+}
+// 宣伝と研究開発の次の段。設備と人材は、置く商品や止まるマスで変わるので出さない
+function investPayback(p, id) {
+  const x = stepOf(p, id);
+  if (!x || !['ad', 'lab'].includes(id)) return -1;
+  const sim = JSON.parse(JSON.stringify(p));
+  invest(sim, id);
+  const net = (sizeOf(sim) - sizeOf(p)) * windOf(p) * moodOf(p) * NET() - x.run / YEAR_STEPS;
+  return net > 0 ? Math.max(1, Math.ceil(x.price / net)) : 0;
 }
 
 // 自動プレイの頭。ライバルも計測用の人形もこれを使う
@@ -1541,9 +1651,14 @@ function brain(b, r) {
   };
   const left = p => CFG.YEARS - p.year;
   const others = (g, p) => g.players.map((_, i) => i).filter(i => g.players[i] !== p);
+  // job 大型案件を狙う。まだ届いていない道の条件があればその道へ、投資の条件ならその投資を買う
+  const jobGoal = (g, p, test) => (b.job && p.yr && !isYearEnd(g) && !projectMet(g, p) ? goalsOf(g, p).find(x => !x.ok && test(x)) : null);
   return {
+    job: !!b.job,
     lane(g, p, node) {
       const lanes = FORKS[node.fork].lanes, any = () => Math.floor(r() * lanes.length), match = lanes.findIndex(l => l.id === windLane(g));
+      const job = jobGoal(g, p, x => x.lane);
+      if (job) return lanes.findIndex(l => l.id === job.lane);
       if (b.always) return lanes.findIndex(l => l.id === b.always);
       if (b.anti) { const rest = [0, 1, 2].filter(i => i !== match); return rest[Math.floor(r() * rest.length)]; }
       if (b.random) return any();
@@ -1599,6 +1714,7 @@ function brain(b, r) {
     wantUp(g, p, id, x, offers) {
       if (b.invest === 'none' || b.noup || b.nobuy) return false;
       if (x.price > p.cash) return false;
+      if (jobGoal(g, p, y => y.id === `${id}2` || y.id === 'up3')) return true;
       if (b.invest === 'all') return true;
       if (b.invest === 'only') return b.focus.includes(id) && x.price <= p.cash * .7;
       if (b.random) return coin(.35);
@@ -1622,7 +1738,8 @@ function brain(b, r) {
       for (const id of p.hand) {
         const c = CARDS[id];
         if (blockOf(g, p, id)) continue;
-        if (!b.cards) { if (coin(.3)) return { id, opt: c.act === 'hit' || c.act === 'push' ? rest[Math.floor(r() * rest.length)] : 1 + Math.floor(r() * 6) }; continue; }
+        const open = rest.filter(i => roomOf(g, i));
+        if (!b.cards) { if (coin(.3)) return { id, opt: c.act === 'push' ? open[Math.floor(r() * open.length)] : c.act === 'hit' ? rest[Math.floor(r() * rest.length)] : 1 + Math.floor(r() * 6) }; continue; }
         if (c.act === 'dice') return { id };
         if (c.act === 'aim') {
           let best = 0, top = 3;
@@ -1631,7 +1748,7 @@ function brain(b, r) {
         }
         if (c.act === 'hit' && !b.nohit) { const to = topOther(g, who); if (worth(g.players[to]) >= worth(p) * .8) return { id, opt: to }; }
         if (c.act === 'guard' && !p.guard) return { id };
-        if (c.act === 'push') return { id, opt: topOther(g, who) };
+        if (c.act === 'push') return { id, opt: open.reduce((a, i) => (worth(g.players[i]) > worth(g.players[a]) ? i : a)) };
         if (c.act === 'expel' && HAUNT_KEYS.some(k => g.haunts[k].at === who && g.haunts[k].big)) return { id };
         if (c.act === 'ward' && rank(g)[0] === p) return { id };
         if (c.act === 'mood' && season === 0) return { id };
@@ -1645,7 +1762,23 @@ function brain(b, r) {
       }
       return null;
     },
+    // お金を払ってとりつき役を追い払うか。うまい人は大物と、次の番で大物に育つ役だけ払う
+    cut(g, p) {
+      const who = whoIs(g, p), key = worstHaunt(g, who);
+      if (!key || !canCut(g, p) || cutFee(g, p, key) > p.cash) return null;
+      const h = g.haunts[key], soon = !h.big && h.age + 1 >= CFG.GROW && !isYearEnd(g);
+      if (b.random) return coin(.2) ? key : null;
+      if (b.cards || b.plan || b.money) return h.big || soon ? key : null;
+      return h.big && coin(.3) ? key : null;
+    },
   };
+}
+// 自動プレイの、お金でとりつき役を追い払う番。追い払ったら役の名前と額を返す
+function autoCut(g, who, q) {
+  const p = g.players[who], key = q.cut(g, p);
+  if (!key) return null;
+  const name = hauntName(g, key);
+  return { key, name, how: HAUNT[key].pay.name, amount: cutHaunt(g, who, key) };
 }
 
 // 自動プレイの年末の準備。会社の種類、投資、借入、開発の順。年の途中(half)は投資だけ
@@ -1654,9 +1787,12 @@ function autoYear(g, p, q, r, half = false) {
   const f = half ? null : q.form(g, p);
   if (f) { changeForm(p, f); out.push(`${FORMS[f].name}になった`); }
   const list = goodsOffers(p, r);
-  for (const id of Object.keys(INVEST)) {
-    const x = stepOf(p, id);
-    if (x && q.wantUp(g, p, id, x, list)) { out.push(investName(p, id)); invest(p, id); }
+  // 大型案件を狙う人は、年の途中で同じ投資をもう1段上げることもある
+  for (let pass = 0; pass < (q.job && half ? 2 : 1); pass++) {
+    for (const id of Object.keys(INVEST)) {
+      const x = stepOf(p, id);
+      if (x && q.wantUp(g, p, id, x, list)) { out.push(investName(p, id)); invest(p, id); }
+    }
   }
   if (half) return out;
   if (q.wantLoan(g, p, list)) borrow(p, loanOffer(p));
@@ -2713,7 +2849,7 @@ function meet(x) {
 }
 function allNotes() {
   const list = new Map();
-  for (const c of [HQ, ...TILES, ...WORLD, ...FORKS.flatMap(f => f.lanes), ...Object.values(CARDS), ...Object.values(FORMS), ...Object.values(INVEST), ...Object.values(OPENING), SYNERGY]) if (c.term && !list.has(c.term)) list.set(c.term, c);
+  for (const c of [HQ, ...TILES, ...WORLD, ...FORKS.flatMap(f => f.lanes), ...Object.values(CARDS), ...Object.values(FORMS), ...Object.values(INVEST), ...Object.values(OPENING), SYNERGY, ...Object.values(HAUNT).map(h => h.pay), ...PROJECTS]) if (c.term && !list.has(c.term)) list.set(c.term, c);
   return [...list.values()];
 }
 
@@ -2774,7 +2910,7 @@ const HAUNT_WHAT = {
   spy: h => (h.big ? '番のはじめに、投資が1段下がり、いちばん売れている商品も決算まで止められる' : '番のはじめに、半分の確率で投資が1段下がる'),
   waster: h => `番のはじめに、総資産の${h.big ? HAUNT.waster.bigLoss : HAUNT.waster.loss}%を無駄づかいされる${h.big ? '。固定費も増える' : ''}`,
 };
-const hauntOff = key => `${HAUNT[key].away}か、ほかの会社のいるマスを通ると離れる。大物でなければ決算でも帰る。${CFG.GROW}ターンついていると大物に育つ`;
+const hauntOff = key => `${HAUNT[key].away}か、ほかの会社のいるマスを通ると離れる。自分の番に「${HAUNT[key].pay.name}」でお金を払って追い払うこともできる(資産の${CFG.CUT[0]}%、大物は${CFG.CUT[1]}%、1ターンに1体)。大物でなければ決算でも帰る。${CFG.GROW}ターンついていると大物に育つ。1社につくのは${CFG.HOLD}体まで`;
 const hauntsOf = i => HAUNT_KEYS.filter(k => g.haunts[k].at === i);
 const hauntTags = i => { const list = hauntsOf(i), burns = g.players[i].burns || []; return list.length || burns.length ? `<span class="haunts">${list.map(k => `<i class="haunt ${k}${g.haunts[k].big ? ' big' : ''}">${hauntName(g, k)}</i>`).join('')}${burns.map(b => `<i class="haunt burn">${b.name}</i>`).join('')}</span>` : ''; };
 async function hauntSheet(key, how) {
@@ -2787,19 +2923,44 @@ async function hauntArrives(res) {
   if (!res) return;
   update();
   const name = HAUNT[res.key].name;
+  const where = res.place ? `${res.place + 1}位の会社に来た(上の会社はもう${CFG.HOLD}体ついている)` : '1位の会社に来た';
   if (res.blocked) { S.shield(); await banner(`${name}をはね返した`, `P${res.to + 1}の内部統制が効いた`, res.to === 0 ? 'good' : 'bad'); return; }
-  if (res.to === 0) await hauntSheet(res.key, '1位の会社に来た');
-  else { S.good(); await banner(`${name}が来た`, `1位の P${res.to + 1} にとりついた`, 'good'); }
+  if (res.to === 0) await hauntSheet(res.key, where);
+  else { S.good(); await banner(`${name}が来た`, `${res.place + 1}位の P${res.to + 1} にとりついた`, 'good'); }
+}
+// お金を払って追い払う候補。1ターンに1体まで。現金が足りなければ押せない
+function cutRows(p) {
+  const done = !canCut(g, p);
+  return hauntsOf(0).map(k => {
+    const fee = cutFee(g, p, k), can = !done && fee <= p.cash;
+    return `<button class="buy" data-go="cut:${k}"${can ? '' : ' disabled'}><span>${HAUNT[k].pay.name}<small>${hauntName(g, k)}を追い払う${done ? ' ・ このターンはもう追い払った' : fee > p.cash ? ' ・ 現金が足りない' : ''}</small></span><b>-${yen(fee)}</b></button>`;
+  }).join('');
+}
+// 追い払った。用語はノートに残す
+async function cutDone(p, key) {
+  const before = snap(p), name = hauntName(g, key), how = HAUNT[key].pay;
+  cutHaunt(g, 0, key);
+  meet(how);
+  S.shield(); update();
+  await sheet(`<div class="card"><p class="kicker">${how.name}</p><h2 class="ask big">${name}を追い払った</h2>${changes(before, p)}${carry()}</div>`);
+  closeSheet();
+}
+async function cutSheet(p) {
+  const go = await sheet(`<div class="card"><h2 class="ask big">とりつき役を追い払う</h2><p class="sub">お金を払って1体追い払える(1ターンに1体)。払わずに、決算や追い払えるマスを待つこともできる</p><ul class="others">${hauntsOf(0).map(k => `<li><span><b>${hauntName(g, k)}</b><small>${HAUNT_WHAT[k](g.haunts[k])}</small></span></li>`).join('')}</ul><div class="cards">${cutRows(p)}</div>${ghost('払わない', 'no')}</div>`);
+  if (go === 'no') return;
+  await cutDone(p, go.slice(4));
 }
 
 function flags(p) {
   const tag = text => `<span class="wind tail">${text}</span>`;
-  return (p.wind ? tag('追い風') : '') + (p.sum > 1 ? tag(`次はサイコロ${p.sum}個`) : '') + (p.mood > 1 ? tag(`売上${+p.mood.toFixed(2)}倍`) : '') + (p.mood < 1 ? `<span class="wind head">売上${+p.mood.toFixed(2)}倍</span>` : '')
+  const m = moodOf(p);
+  return (p.wind ? tag('追い風') : '') + (p.sum > 1 ? tag(`次はサイコロ${p.sum}個`) : '') + (m > 1 ? tag(`売上${+m.toFixed(2)}倍`) : '') + (m < 1 ? `<span class="wind head">売上${+m.toFixed(2)}倍</span>` : '')
     + (p.shield ? tag('保険') : '') + (p.guard ? tag('守り') : '') + (p.ward ? tag('内部統制') : '') + (p.cheap ? tag('次の開発が半額') : '') + (p.double ? tag('利益2倍') : '');
 }
 function renderDock() {
   const p = me(), pill = (label, n, cls = '') => `<span class="pill ${cls}">${label}<b>${n}</b></span>`, debt = debtOf(p);
-  $('status').innerHTML = hauntsOf(0).map(k => `<span class="pill haunt-p ${k}">${hauntName(g, k)}<b>${g.haunts[k].big ? '大物' : `あと${Math.max(0, CFG.GROW - g.haunts[k].age)}ターンで大物`}</b></span>`).join('') + (p.burns || []).map(b => `<span class="pill haunt-p burn">${b.name}<b>あと${b.turns}ターン</b></span>`).join('') + pill('現金', yen(p.cash)) + pill('売上', perTile(powerOf(p))) + pill('営業力', p.power)
+  const goals = p.yr && g.turn >= 0 && !isOver(g) ? goalsOf(g, p) : null;
+  $('status').innerHTML = (goals ? `<button class="pill job${goals.some(x => x.ok) ? ' done' : ''}" data-job aria-label="今年の大型案件を見る">案件<b>${goals.some(x => x.ok) ? '達成' : goals.map(x => `${x.now}/${x.need}`).join(' か ')}</b></button>` : '') + hauntsOf(0).map(k => `<span class="pill haunt-p ${k}">${hauntName(g, k)}<b>${g.haunts[k].big ? '大物' : `あと${Math.max(0, CFG.GROW - g.haunts[k].age)}ターンで大物`}</b></span>`).join('') + (p.burns || []).map(b => `<span class="pill haunt-p burn">${b.name}<b>あと${b.turns}ターン</b></span>`).join('') + pill('現金', yen(p.cash)) + pill('売上', perTile(powerOf(p))) + pill('営業力', p.power)
     + (p.later ? pill('入金待ち', yen(p.later)) : '')
     + (debt ? pill('借金', yen(debt), 'red') : '') + flags(p);
 }
@@ -2975,7 +3136,7 @@ function shelf(p) {
     + list.map(x => `<li><span><b>${x.name}</b><small>${x.stop ? '差し止め中(次の決算まで)' : stageOf(p, x)}</small></span>${curve(p, x)}<em>${perTile(itemPower(p, x))}</em></li>`).join('')).join('')
     + (p.level.lab ? `<li><span><b>研究開発</b><small>上の商品の売上に含む</small></span><em>×${labOf(p).toFixed(1)}</em></li>` : '')
     + (p.fame ? `<li><span><b>会社の評判</b><small>宣伝、経営判断、周回で積み上がる</small></span><em>${perTile(p.fame * TRADES[p.trade].rate)}</em></li>` : '')
-    + (Math.abs(windOf(p) * p.mood - 1) > .001 ? `<li><span><b>追い風・景気など</b></span><em>×${+(windOf(p) * p.mood).toFixed(2)}</em></li>` : '');
+    + (Math.abs(windOf(p) * moodOf(p) - 1) > .001 ? `<li><span><b>追い風・景気など</b>${p.lift > 1 ? `<small>売上アップ ×${+p.lift.toFixed(2)}(重ならず、いちばん大きいものだけ)</small>` : ''}</span><em>×${+(windOf(p) * moodOf(p)).toFixed(2)}</em></li>` : '');
 }
 // 1社の状況。資産、1マスの売上、固定費を同じ段に並べ、それぞれの内訳を下に置く
 function company(i) {
@@ -3081,12 +3242,24 @@ async function landFund(p, t) {
 }
 
 const lockNote = (p, x) => `${INVEST[x.need].label}の段階${x.lv}(${investItem(p, x.need, x.lv)})がないと開発できない`;
-// 開発の候補の説明。売れ筋のころの増え方、分野のまとまり、投資との相性
-function goodsNote(p, x) {
+const LIFE_NOTE = '棒は半年ごとの売れ行き。秋のはじめと決算のたびに1つ右へ進む。';
+// 元が取れるまでのマス数。1年でおよそ YEAR_STEPS マス進む
+const paybackText = n => (n > 0 ? `約${n}マスで元が取れる(${n <= YEAR_STEPS ? '1年以内' : `約${(n / YEAR_STEPS).toFixed(1)}年`})` : '増える売上より費用が大きく、元は取れない見込み');
+// 開発の候補の説明。売れ筋のころの増え方、分野のまとまり、投資との相性、元が取れるまで
+function goodsNote(p, x, off = 1) {
   const same = p.goods.filter(y => y.genre === x.genre).length;
   const syn = same ? `<br>${x.genre}が${same + 1}つになり、この分野が ×${(1 + CFG.SYN * same).toFixed(2)}` : '';
   const plus = `${INVEST[x.plus].label}の段階${x.lv}`;
-  return `売れ筋のころ +${perTile(gainIf(p, x))}${syn}<br>${x.up ? `${plus}があるので売上アップ` : `${plus}があれば売上アップ`}`;
+  const back = shelfFull(p) ? '' : `<br>${paybackText(paybackOf(p, x, priceOf(p, x, off)))}`;
+  return `売れ筋のころ +${perTile(gainIf(p, x))}${syn}<br>${x.up ? `${plus}があるので売上アップ` : `${plus}があれば売上アップ`}${back}`;
+}
+// 開発する前の見通し。今の増え方、売れ筋のころの増え方、元が取れるまで
+function goodsOutlook(p, item, off, drop) {
+  const now = goodsPower(p, [...p.goods.filter((_, i) => i !== drop), { ...item, age: 0 }]) - goodsPower(p), sold = drop >= 0 ? saleOf(p.goods[drop]) : 0;
+  return `<ul class="outlook"><li><span>1マスの売上</span><b>はじめ ${now >= 0 ? '+' : ''}${perTile(now)} → 売れ筋のころ +${perTile(gainIf(p, item, drop))}</b></li>
+    <li><span>売れ行きが変わる</span><b>秋のはじめと決算のたび</b></li>
+    <li><span>毎年の固定費</span><b>維持費 +${yen(item.price * CFG.UPKEEP)} ・ 人件費は売上に比例して増える</b></li>
+    <li><span>元が取れるまで</span><b>${paybackText(paybackOf(p, item, priceOf(p, item, off) - sold, drop))}</b></li></ul>`;
 }
 const pips = (lv, max) => `<i class="pips">${Array.from({ length: max }, (_, k) => `<b class="${k < lv ? 'on' : ''}"></b>`).join('')}</i>`;
 // 投資の今の効き目
@@ -3100,8 +3273,8 @@ function effectNow(p, id) {
 function stepNote(p, id) {
   const sim = JSON.parse(JSON.stringify(p)), x = stepOf(p, id);
   invest(sim, id);
-  const cost = id === 'site' ? `維持費 毎年 +${yen(x.price * CFG.UPKEEP)}` : `毎年の費用 +${yen(x.run)}`;
-  return `${effectNow(p, id)} → ${effectNow(sim, id).replace(/^[^ ]+ /, '')} ・ ${cost}${ties(p, id)}`;
+  const cost = id === 'site' ? `維持費 毎年 +${yen(x.price * CFG.UPKEEP)}` : `毎年の費用 +${yen(x.run)}`, back = investPayback(p, id);
+  return `${effectNow(p, id)} → ${effectNow(sim, id).replace(/^[^ ]+ /, '')} ・ ${cost}${back >= 0 ? `<br>${paybackText(back)}` : ''}${ties(p, id)}`;
 }
 // 次の段に投資すると開発できるようになる商品
 function ties(p, id) {
@@ -3136,7 +3309,7 @@ async function shopSheet(p, list, off, head) {
     const items = list.map(x => judge(p, x));
     const rows = items.map((x, i) => {
       const cost = priceOf(p, x, off), can = x.ok && cost <= p.cash;
-      return `<button class="bigcard" data-go="${i}"${can ? '' : ' disabled'}><span class="cb"><b>${x.name}</b>${genreTag(p, x.genre)}<span class="eff">開発費 ${yen(cost)}${x.ok && !can ? ' 現金が足りない' : ''}</span><small class="${x.ok ? '' : 'lock'}">${x.ok ? goodsNote(p, x) : lockNote(p, x)}</small></span>${curve(p, x)}</button>`;
+      return `<button class="bigcard" data-go="${i}"${can ? '' : ' disabled'}><span class="cb"><b>${x.name}</b>${genreTag(p, x.genre)}<span class="eff">開発費 ${yen(cost)}${x.ok && !can ? ' 現金が足りない' : ''}</span><small class="${x.ok ? '' : 'lock'}">${x.ok ? goodsNote(p, x, off) : lockNote(p, x)}</small></span>${curve(p, x)}</button>`;
     }).join('');
     const go = await sheet(`<div class="card">${head}<p class="sub">商品棚 ${p.goods.length} / ${shelfOf(p)}</p><div class="cards">${rows}</div>${ghost('投資する', 'invest')}${ghost('見送る', 'no')}</div>`);
     if (go === 'no') return false;
@@ -3151,7 +3324,7 @@ async function shopSheet(p, list, off, head) {
       if (old === 'site') { await investSheet(p, 'site'); if (shelfFull(p)) continue; }
       else drop = +old;
     }
-    const ok = await sheet(`<div class="card"><h2 class="ask big">${item.name}を開発する</h2><p class="sub">開発するとこう変わる</p>${trial(p, q => buy(q, item, off, drop))}<p class="sub">売れ筋のころ +${perTile(gainIf(p, item, drop))}</p>${carry('開発する')}${ghost('やめる', 'no')}</div>`);
+    const ok = await sheet(`<div class="card"><h2 class="ask big">${item.name}を開発する</h2><p class="sub">開発するとこう変わる</p>${trial(p, q => buy(q, item, off, drop))}<p class="kicker">これからの見通し</p>${goodsOutlook(p, item, off, drop)}${carry('開発する')}${ghost('やめる', 'no')}</div>`);
     if (ok === 'no') continue;
     buy(p, item, off, drop);
     if (p.goods.filter(x => x.genre === item.genre).length > 1) meet(SYNERGY);
@@ -3160,7 +3333,7 @@ async function shopSheet(p, list, off, head) {
     return true;
   }
 }
-const landGoods = (p, t) => { meet(t); const off = devOff(p); return shopSheet(p, goodsOffers(p, Math.random), off, heading(t, `どれかを${Math.round((1 - off) * 100)}%引きで開発できる(営業力 ${p.power})。棒は1年ごとの売れ行き。`)); };
+const landGoods = (p, t) => { meet(t); const off = devOff(p); return shopSheet(p, goodsOffers(p, Math.random), off, heading(t, `どれかを${Math.round((1 - off) * 100)}%引きで開発できる(営業力 ${p.power})。${LIFE_NOTE}`)); };
 
 async function landRush(p, t) {
   meet(t);
@@ -3240,10 +3413,10 @@ function laneMix(node, k, left) {
   return `<span class="mix">${list.map(x => chip(x, x === stop ? 'stop' : 'pass')).join('')}${more.map(x => chip(x, 'later')).join('')}</span>${stop ? '' : '<small class="refork">この先でもう一度分かれ道を選ぶ</small>'}`;
 }
 async function myFork(p, node, left) {
-  const fork = FORKS[node.fork], wind = windLane(g);
+  const fork = FORKS[node.fork], wind = windLane(g), job = projectMet(g, p) ? null : goalsOf(g, p).find(x => x.lane && !x.ok);
   G.view('fork', node.i);
   G.mark(fork.lanes.map((_, k) => laneRun(node, k, left).stop?.i).filter(i => i !== undefined));
-  const list = fork.lanes.map((l, k) => `<button class="bigcard" data-go="${k}"><span class="cb"><b>${l.name}${l.id === wind ? '<i class="windtag">追い風</i>' : ''}</b><span class="eff">抜けると ${passText(p, l)}</span><small>${l.note}</small>${laneMix(node, k, left)}</span></button>`).join('');
+  const list = fork.lanes.map((l, k) => `<button class="bigcard" data-go="${k}"><span class="cb"><b>${l.name}${l.id === wind ? '<i class="windtag">追い風</i>' : ''}${job?.lane === l.id ? `<i class="windtag job">案件 ${job.now}/${job.need}</i>` : ''}</b><span class="eff">抜けると ${passText(p, l)}</span><small>${l.note}</small>${laneMix(node, k, left)}</span></button>`).join('');
   const k = +await sheet(`<div class="card"><div class="left-steps"><span>分かれ道</span><b>あと<em>${left}</em>マス進む</b></div><h3 class="ask">${fork.ask}</h3><p class="sub">金の札が止まるマス。今は${climateOf(g).name}。追い風の道は +${yen(CFG.MATCH * scaleOf(p))}、次の分かれ道まで売上${CFG.TAIL}倍</p><div class="cards">${list}</div></div>`);
   G.mark([]);
   closeSheet();
@@ -3274,7 +3447,7 @@ async function mySettle(s, y, before) {
     ${s.short ? '<p class="note center warn">現金が足りなかった。このあと払い方を選ぶ。</p>' : ''}
     ${s.hint ? `<p class="sub">合同会社か株式会社なら、税金は${yen(s.hint)}で済んだ。</p>` : ''}
     <p class="kicker">決算で変わったこと</p>${changes(before, me())}
-    <p class="sub">${TRADES[me().trade].later ? '売上は入金待ちに積まれていて、ここで現金になる。' : '売上は進むたびに入っている。'}決算で払うのは費用と税金。商品が1年歳をとる。</p>
+    <p class="sub">${TRADES[me().trade].later ? '売上は入金待ちに積まれていて、ここで現金になる。' : '売上は進むたびに入っている。'}決算で払うのは費用と税金。商品の売れ行きが半年ぶん進む。</p>
     ${carry('次へ')}</div>`);
   closeSheet();
 }
@@ -3315,7 +3488,7 @@ async function yearMenu(p, next) {
       </div>${carry(`${next}年目へ進む`)}</div>`);
     if (go === 'ok') break;
     if (go === 'invest') await investSheet(p);
-    if (go === 'goods') { if (await shopSheet(p, goods, 1, '<h2 class="ask big">新商品を開発する</h2><p class="note">商品は会社の売り物。棒は1年ごとの売れ行き。</p>')) bought = true; }
+    if (go === 'goods') { if (await shopSheet(p, goods, 1, `<h2 class="ask big">新商品を開発する</h2><p class="note">商品は会社の売り物。${LIFE_NOTE}</p>`)) bought = true; }
     if (go === 'bank') {
       const ok = await sheet(`<div class="card"><h2 class="ask big">銀行で借りる</h2><p class="sub">借りるとこう変わる</p>${trial(p, q => borrow(q, n))}<p class="sub">毎年の決算で ${yen(n / CFG.REPAY)} ずつ返す。利息は年${Math.round(CFG.RATE * 100)}%。</p>${carry(`${yen(n)}借りる`)}${ghost('やめる', 'no')}</div>`);
       if (ok === 'ok') { borrow(p, n); lent = true; S.coin(); burst(n); update(); }
@@ -3342,6 +3515,8 @@ async function yearEnd() {
   $('earn').hidden = true;
   await mySettle(res.list[0], y, before);
   await coverShort(p);
+  const won = res.project.map((n, i) => ({ n, i })).filter(x => x.n);
+  if (won.length) { S.coin(); await banner(`大型案件「${projectNow(g).name}」`, `達成 ${won.map(x => `P${x.i + 1} +${yen(x.n)}`).join(' ・ ')}`, 'good'); }
   if (res.low >= 0) { S.coin(); await banner('支援金', `最下位の P${res.low + 1} に +${yen(res.aid)}(平均資産の${Math.round(CFG.AID_RATE * 100)}%)`, 'good'); update(); }
   await hauntArrives(res.haunt);
   if (final) return;
@@ -3436,9 +3611,10 @@ const ICON = {
   plan: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V10M10 16V4M16 16v-7"/></svg>',
   map: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5"/></svg>',
   here: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4.5"/><path d="M10 2v3.5M10 14.5V18M2 10h3.5M14.5 10H18"/></svg>',
+  cut: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M5 5l10 10"/></svg>',
 };
 const commands = (p, used) => `<p class="coach">${coach()}</p><button class="btn big" data-do="roll">${p.aim ? `${p.aim}マス進む` : p.sum > 1 ? `サイコロ${p.sum}個を振る` : 'サイコロを振る'}</button>
-  <div class="acts"><button data-do="cards"${used ? ' disabled' : ''}>${ICON.cards}<span>${used ? 'カードは使った' : 'カードを使う'}</span><em>${p.hand.length}枚</em></button><button data-do="invest">${ICON.invest}<span>投資をする</span></button></div>
+  <div class="acts"><button data-do="cards"${used ? ' disabled' : ''}>${ICON.cards}<span>${used ? 'カードは使った' : 'カードを使う'}</span><em>${p.hand.length}枚</em></button><button data-do="invest">${ICON.invest}<span>投資をする</span></button>${hauntsOf(0).length ? `<button class="wide" data-do="cut"${canCut(g, p) ? '' : ' disabled'}>${ICON.cut}<span>${canCut(g, p) ? 'お金を払ってとりつき役を追い払う' : 'このターンはもう追い払った'}</span><em>${hauntsOf(0).length}体</em></button>` : ''}</div>
   <div class="views"><button data-do="plan">${ICON.plan}全社の比較</button><button data-do="map">${mapOn ? `${ICON.here}現在地に戻る` : `${ICON.map}マップ全体`}</button></div>`;
 
 async function aimSheet(p) {
@@ -3452,8 +3628,12 @@ async function aimSheet(p) {
 
 // 妨害の相手を選ぶ。守りを固めているかは分からない
 async function targetSheet(p, c) {
-  const rows = g.players.map((_, i) => i).slice(1).map(i => { const q = g.players[i]; return `<button class="bigcard" data-go="${i}"><span class="cb"><b>${badge(i)} ${TRADES[q.trade].name}</b><span class="eff">資産 ${yen(worth(q))}</span><small>1マスの売上 ${perTile(powerOf(q))} ・ 営業力 ${q.power} ・ 商品 ${q.goods.length}つ</small></span></button>`; }).join('');
-  const go = await sheet(`<div class="card"><h2 class="ask big">${c.name}</h2><p class="sub">${c.fx}。どの会社に使う?</p><div class="cards">${rows}</div>${ghost('やめる', 'no')}</div>`);
+  const push = c.act === 'push', key = push ? worstHaunt(g, 0) : '';
+  const rows = g.players.map((_, i) => i).slice(1).map(i => {
+    const q = g.players[i], full = push && !roomOf(g, i);
+    return `<button class="bigcard" data-go="${i}"${full ? ' disabled' : ''}><span class="cb"><b>${badge(i)} ${TRADES[q.trade].name}</b><span class="eff">資産 ${yen(worth(q))}</span><small>${push ? (full ? `もう${CFG.HOLD}体ついているので移せない` : `とりつき役 ${heldBy(g, i)}体`) : `1マスの売上 ${perTile(powerOf(q))} ・ 営業力 ${q.power} ・ 商品 ${q.goods.length}つ`}</small></span></button>`;
+  }).join('');
+  const go = await sheet(`<div class="card"><h2 class="ask big">${c.name}</h2><p class="sub">${push ? `${hauntName(g, key)}を移す。` : `${c.fx}。`}どの会社に使う?</p><div class="cards">${rows}</div>${ghost('やめる', 'no')}</div>`);
   return go === 'no' ? -1 : +go;
 }
 // 自分が妨害を受けたとき
@@ -3499,24 +3679,26 @@ async function handSheet(p) {
   return true;
 }
 
-// 自分の番のはじめに起きること。とりつき役の悪さ(育ったら大きく知らせる)と、続いているトラブル
+// 自分の番のはじめに起きること。とりつき役の悪さと、続いているトラブルを1枚にまとめる。育った役は同じ画面で大きく知らせる
+// 自分の番なら、その画面でお金を払って1体追い払える
 async function startTurn(i) {
   const p = g.players[i], before = snap(p), lines = [];
-  const hs = hauntTurn(g, i, Math.random);
-  for (const h of hs) {
-    if (h.grew) { update(); S.boom(); shake(); await banner(`${HAUNT[h.key].name}が育った`, `${h.name}になった`, i === 0 ? 'bad' : 'good'); }
-    lines.push(`<b>${h.name}</b>: ${h.say}${h.amount ? ` -${yen(h.amount)}` : ''}${h.text ? ` ・ ${h.text}` : ''}`);
-  }
+  const hs = hauntTurn(g, i, Math.random), grew = hs.filter(h => h.grew);
+  for (const h of hs) lines.push(`${h.grew ? '<i class="grew">大物に育った</i>' : ''}<b>${h.name}</b>: ${h.say}${h.amount ? ` -${yen(h.amount)}` : ''}${h.text ? ` ・ ${h.text}` : ''}`);
   for (const b of burnTurn(g, i)) lines.push(`<b>${b.name}</b>: ${b.amount ? `-${yen(b.amount)}` : `このターンの売上 ${b.cut}倍`}${b.left ? `(あと${b.left}ターン)` : '(これで終わり)'}`);
   if (!lines.length) return;
   update();
   if (i === 0) {
-    S.bad();
-    await sheet(`<div class="card"><p class="kicker">番のはじめに</p><h2 class="ask big">${hs.length ? 'とりつかれている' : '続いているトラブル'}</h2><ul class="others">${lines.map(l => `<li><span>${l}</span></li>`).join('')}</ul>${changes(before, p)}${hs.length ? '<p class="sub">「厄介払い」のカードで他社に移す、「社外取締役を入れる」で追い払う、ほかの会社のいるマスを通って移す、などで手放せる</p>' : ''}${carry()}</div>`);
+    if (grew.length) { S.boom(); shake(); } else S.bad();
+    const title = grew.length ? `${grew.map(h => h.name).join('と')}になった` : hs.length ? 'とりつかれている' : '続いているトラブル';
+    const go = await sheet(`<div class="card"><p class="kicker">番のはじめに</p><h2 class="ask big${grew.length ? ' haunt-head ' + grew[0].key : ''}">${title}</h2><ul class="others">${lines.map(l => `<li><span>${l}</span></li>`).join('')}</ul>${changes(before, p)}
+      ${hauntsOf(0).length ? `<p class="sub">お金を払って追い払うか、このままにして追い払えるマスや決算を待つ。カードの「厄介払い」「社外取締役を入れる」も使える</p><div class="cards">${cutRows(p)}</div>${carry('このままにする')}` : carry()}</div>`);
     closeSheet();
+    if (go.startsWith('cut:')) await cutDone(p, go.slice(4));
     await coverShort(p);
     closeSheet();
   } else {
+    if (grew.length) { S.boom(); await banner(`${grew.map(h => HAUNT[h.key].name).join('と')}が育った`, `P${i + 1}の${grew.map(h => h.name).join('と')}`, 'good'); }
     say(i, lines.join('<br>'), 'bad');
     await pause(900); hush();
   }
@@ -3537,6 +3719,7 @@ async function myTurn() {
     $('action').innerHTML = '';
     if (go === 'cards') { if (await handSheet(p)) used = true; closeSheet(); }
     if (go === 'invest') { await investSheet(p); closeSheet(); }
+    if (go === 'cut') { await cutSheet(p); closeSheet(); await coverShort(p); closeSheet(); }
     if (go === 'plan') compareSheet();
     if (go === 'map') mapOn = !mapOn;
     G.view(mapOn ? 'all' : 'follow', p.at);
@@ -3565,6 +3748,8 @@ async function rivalTurn(i) {
   G.setActive(i); G.view('follow', p.at);
   await pause(240);
   await startTurn(i);
+  const cut = autoCut(g, i, q);
+  if (cut) { update(); S.shield(); say(i, `${cut.how}<em>${cut.name}を追い払った -${yen(cut.amount)}</em>`, 'good'); await pause(800); hush(); }
   const a = q.act(g, p);
   if (a) {
     const c = CARDS[a.id], text = cardText(p, a.id), before = snap(me()), res = useCard(g, i, a.id, a.opt);
@@ -3623,7 +3808,7 @@ async function halfYear() {
   await hauntArrives(sent);
 }
 
-// 新しい年。景気が変わる
+// 新しい年。景気が変わり、今年の大型案件が出る
 async function newYear() {
   startYear(g);
   const air = climateOf(g), y = yearNow(g);
@@ -3631,7 +3816,18 @@ async function newYear() {
   update();
   G.view('all');
   await banner(`${y + 1}年目`, `${air.k === 1 ? `今年は${air.name}` : `今年は${air.name} ・ 売上${air.k}倍`}${y > 0 ? ' ・ マスの並びが変わった' : ''}`, air.k < 1 ? 'bad' : 'good');
+  S.good();
+  meet(projectNow(g));
+  await sheet(`<div class="card"><p class="kicker">${y + 1}年目の大型案件</p>${projectBody(me())}${carry()}</div>`);
+  closeSheet();
 }
+// 大型案件の中身。条件ごとの今の数と、満たしたときに入る額
+function projectBody(p) {
+  const job = projectNow(g), list = goalsOf(g, p), done = list.some(x => x.ok);
+  const row = x => `<li class="${x.ok ? 'done' : ''}"><span>${x.text}</span><b>${x.ok ? '達成' : `${x.now} / ${x.need}`}</b></li>`;
+  return `<h2 class="ask big">${job.name}</h2><p class="note">決算までに、どちらか1つを満たすと <b class="gold">+${yen(avgOf(g, p, CFG.PROJECT))}</b>(全社の平均資産の${CFG.PROJECT}%)。どの会社も狙える</p><ul class="goals">${list.map(row).join('<li class="or">か</li>')}</ul>${done ? '<p class="sub">もう満たしている。決算で報酬が入る</p>' : '<p class="sub">投資は下の「投資をする」からいつでもできる。道の条件は、分かれ道で「案件」の札が付く</p>'}`;
+}
+const projectSheet = () => peek(`<p class="kicker">${yearNow(g) + 1}年目の大型案件</p>${projectBody(me())}`);
 
 async function playGame() {
   g.history = [g.players.map(worth)];
@@ -3742,10 +3938,10 @@ function speedRound(no, q, got) {
 }
 // 5年後の経営者レベル判定。全社で早押し。取った問題の数でレベルが決まり、自分の資産が増減する
 async function levelTest() {
-  const list = LEVELS.map(l => `<li><span>${l.name}</span><small>${l.min ? `${l.min}問以上取る` : '1問も取れない'}</small><b class="${l.rate < 0 ? 'minus' : l.rate ? '' : 'even'}">${l.rate ? `資産の${l.rate > 0 ? '+' : ''}${Math.round(l.rate * 100)}%` : '増減なし'}</b></li>`).join('');
+  const list = LEVELS.map(l => `<li><span>${l.name}</span><small>${l.min ? `${l.min}問以上取る` : '1問も取れない'}</small><b class="${l.rate < 0 ? 'minus' : l.rate ? '' : 'even'}">${l.rate > 0 ? `平均資産の+${Math.round(l.rate * 100)}%` : l.rate ? `自分の資産の${Math.round(l.rate * 100)}%` : '増減なし'}</b></li>`).join('');
   S.fanfare();
-  await sheet(`<div class="card"><p class="kicker">ボーナスチャンス</p><h2 class="ask big">経営者レベル判定</h2><p class="note">この${CFG.YEARS}年で出会った言葉から${QUIZ}問の早押し。いちばん早く正しく答えた会社がその問題を取る。合っていても遅ければ取れない。間違えると、その問題はもう答えられない</p><ul class="others levels">${list}</ul>${carry('始める')}</div>`);
-  const quiz = makeQuiz(QUIZ), got = g.players.map(() => 0);
+  await sheet(`<div class="card"><p class="kicker">ボーナスチャンス</p><h2 class="ask big">経営者レベル判定</h2><p class="note">この${CFG.YEARS}年で出会った言葉から${QUIZ}問の早押し。いちばん早く正しく答えた会社がその問題を取る。合っていても遅ければ取れない。間違えると、その問題はもう答えられない。ボーナスは全社の平均資産(今は${yen(avgWorth(g))})に対する割合なので、どの順位でも同じ額</p><ul class="others levels">${list}</ul>${carry('始める')}</div>`);
+  const quiz = makeQuiz(QUIZ), got = g.players.map(() => 0), avg = avgWorth(g);
   for (const [n, q] of quiz.entries()) {
     const r = await speedRound(n + 1, q, got);
     if (r.winner >= 0) got[r.winner] += 1;
@@ -3755,7 +3951,7 @@ async function levelTest() {
     await sheet(`<div class="card"><div class="stamp${r.winner === 0 ? '' : ' bad'}">${who}</div><p class="sum">${q.answer.term}</p><p class="note">${q.answer.def}</p>${q.hint ? `<p class="sub">${q.hint}</p>` : ''}<p class="sub">${q.answer.subject} ・ あなた: ${mine}</p>
       <div class="buzzers wide">${g.players.map((_, i) => `<span class="buzz">${badge(i)}<b>${got[i]}</b></span>`).join('')}</div>${carry(n < quiz.length - 1 ? '次の問題' : '判定を見る')}</div>`);
   }
-  const results = g.players.map((p, i) => ({ i, n: got[i], lv: levelOf(got[i]), bonus: levelBonus(p, got[i]) }));
+  const results = g.players.map((p, i) => ({ i, n: got[i], lv: levelOf(got[i]), bonus: levelBonus(p, got[i], avg) }));
   update();
   const mine = results[0];
   if (mine.lv.rate > 0) { S.fanfare(); confetti(); } else if (mine.lv.rate < 0) { S.bad(); shake(); }
@@ -3951,13 +4147,15 @@ const MORE = [
     '人件費は会社が大きいほど増える(1マスの売上に比例)',
     '現金が足りないときは、商品を売るか、銀行に立て替えてもらう(1.2倍で2年返済)',
     '決算で最下位の会社には支援金。半年ごとに、1位の会社にとりつき役(悪徳コンサル・クレーマー・産業スパイ・浪費家の役員)が来る。ほかの会社のいるマスを通ると移せる',
-    `とりつき役は${CFG.GROW}ターンついていると大物に育ち、決算でも帰らなくなる。追い払えるマスがそれぞれある。カードで押し付けたり、防いだり、追い払ったりもできる`,
-    `${CFG.YEARS}年後に、出会った言葉の早押しで経営者レベル判定。いちばん早く正しく答えた会社が1問を取る。3問以上取ると資産+50%、1問も取れないと-30%`,
+    `とりつき役は${CFG.GROW}ターンついていると大物に育ち、決算でも帰らなくなる。1社につくのは${CFG.HOLD}体まで。追い払えるマスがそれぞれあり、自分の番にお金を払って1体追い払うこともできる(資産の${CFG.CUT[0]}%、大物は${CFG.CUT[1]}%)。カードで押し付けたり、防いだりもできる`,
+    `毎年、大型案件が1つ出る。決算までに2つの条件のどちらかを満たすと、全社の平均資産の${CFG.PROJECT}%が入る。下の「案件」の札で進み具合を見られる`,
+    `${CFG.YEARS}年後に、出会った言葉の早押しで経営者レベル判定。いちばん早く正しく答えた会社が1問を取る。3問以上取ると全社の平均資産の+50%、1問も取れないと自分の資産の-30%`,
   ]],
   ['道とカード', [
     '分かれ道は、道を抜けると何かが起きる(手堅い道は平均資産の3%か売上アップ、攻める道はサイコロ勝負、試す道はカードや営業力)。入るお金は全社の平均資産に合わせるので、下位の会社ほど大きく効く',
     '景気に合う道は追い風(好景気は攻める、ふつうは試す、不景気は手堅い)',
     'カードはサイコロの前に1ターン1枚使える。他社を狙う妨害と、それをはね返す守りもある',
+    '売上アップ(カードや2択)は重ならず、いちばん大きいものだけ効く。決算で切れる',
     '新しい年になると、マスの並びが変わる',
     '営業力が上がると、営業・広報マスの売上と商品開発の値引きが増える',
   ]],
@@ -4018,6 +4216,7 @@ document.addEventListener('click', e => {
   const co = e.target.closest('[data-co]');
   if (co) { S.tap(); company(+co.dataset.co); return; }
   if (e.target.closest('[data-all]')) { S.tap(); compareSheet(); return; }
+  if (e.target.closest('[data-job]')) { S.tap(); projectSheet(); return; }
   const z = e.target.closest('[data-zoom]');
   if (z) { G.zoomBy(z.dataset.zoom === 'in' ? .8 : 1.25); return; }
   const tog = e.target.closest('[data-pick]');
