@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="経営の流れを一周する盤で、5年後の資産を競うボードゲーム。中小企業診断士の言葉が、出来事として出てくる。">
 <title>経営ロード</title>
 <meta name="theme-color" content="#0a0d18">
@@ -14,15 +14,11 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <script>
-// ホーム画面から開いたときは、時計の帯の下までページを広げ、帯の高さの分だけ盤を下げる。
-// 追加し直したアプリでは、全画面なのに standalone を名乗らないことや、帯の高さを0と返すことがある。
-// そこで画面いっぱいに開いているかでも見分け、app の印を付けて、縦向きなら帯の高さを少なくとも62px見込む。
-// ブラウザでは帯の高さが分からないことがあるので、広げずにブラウザに帯の下へ置いてもらう
+// 「時計の帯の下まで使う」は最初から書いておく。iPhone はホーム画面に追加した時点のこの書き方で、帯の高さを教えるかを決めるらしい。
+// ブラウザのタブでは帯の高さが分からないことがあるので、ホーム画面のアプリでないときだけ外して、ブラウザに帯の下へ置いてもらう
 (function () {
-  var full = navigator.standalone || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || (screen.height - window.innerHeight < 2 && Math.min(screen.width, screen.height) < 600);
-  if (!full) return;
-  document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
-  document.documentElement.classList.add('app');
+  var app = navigator.standalone || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || (screen.height - window.innerHeight < 2 && Math.min(screen.width, screen.height) < 600);
+  if (!app) document.querySelector('meta[name=viewport]').setAttribute('content', 'width=device-width,initial-scale=1');
 })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -513,14 +509,6 @@ b.gold { color: var(--gold); font-family: var(--num); }
 /* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない。帯の高さが分かるときは、その分だけ上に紺の余白をとる */
 html { background: #0a0d18; }
 #app { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); }
-/* iPhone は時計の帯の少し下までぼかしをかけるので、帯の高さに40px足し、帯から盤へ色を少しずつ移す */
-@media (orientation: portrait) and (max-width: 600px) {
-  .app #app { --bar: calc(max(env(safe-area-inset-top, 0px), 62px) + 40px); padding-top: var(--bar); }
-  .app .stage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 28px; z-index: 1; background: linear-gradient(#0a0d18, rgba(10, 13, 24, 0)); pointer-events: none; }
-  .app .hud { z-index: 2; }
-  .app .sheet { max-height: calc(100% - 64px - var(--bar)); }
-  .app .peek { padding-top: calc(8px + var(--bar)); }
-}
 .dock { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 </style>
 </head>
