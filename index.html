@@ -513,10 +513,10 @@ b.gold { color: var(--gold); font-family: var(--num); }
 /* このページだけ。iPhoneの時計や電池の帯の下に盤を入れない。帯の高さが分かるときは、その分だけ上に紺の余白をとる */
 html { background: #0a0d18; }
 #app { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); }
-/* iPhone は時計の帯の少し下までぼかしをかけるので、帯の高さに24px足し、帯から盤へ色を少しずつ移す */
+/* iPhone は時計の帯の少し下までぼかしをかけるので、帯の高さに40px足し、帯から盤へ色を少しずつ移す */
 @media (orientation: portrait) and (max-width: 600px) {
-  .app #app { --bar: calc(max(env(safe-area-inset-top, 0px), 62px) + 24px); padding-top: var(--bar); }
-  .app .stage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 18px; z-index: 1; background: linear-gradient(#0a0d18, rgba(10, 13, 24, 0)); pointer-events: none; }
+  .app #app { --bar: calc(max(env(safe-area-inset-top, 0px), 62px) + 40px); padding-top: var(--bar); }
+  .app .stage::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 28px; z-index: 1; background: linear-gradient(#0a0d18, rgba(10, 13, 24, 0)); pointer-events: none; }
   .app .hud { z-index: 2; }
   .app .sheet { max-height: calc(100% - 64px - var(--bar)); }
   .app .peek { padding-top: calc(8px + var(--bar)); }
